@@ -47,7 +47,7 @@ public class ClientApp {
 
                 @Override
                 public void onClose(int code, String reason, boolean remote) {
-                    System.out.println("close: " + reason);
+                    System.out.println("close: " + reason + "code: " +  code);
                 }
 
                 @Override

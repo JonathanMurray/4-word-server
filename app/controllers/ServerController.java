@@ -37,7 +37,8 @@ public class ServerController extends WebSocketController {
                     ByteArrayOutputStream out =new ByteArrayOutputStream();
                     new ObjectOutputStream(out).writeObject(p);
                     System.out.println("Sending it back");
-                    outbound.send((byte)0, out.toByteArray());
+                    byte opcode = 2; //binary
+                    outbound.send(opcode, out.toByteArray());
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 } catch (ClassNotFoundException e1) {
