@@ -13,14 +13,13 @@ import java.io.*;
 
 public class ServerController extends WebSocketController {
 
-    public ServerController(){
-        System.out.println("ServerController constructor");
-    }
+
 
     public static void connect() {
         System.out.println("A client has connected");
 
         while(inbound.isOpen()){
+            System.out.println("Waiting for next inbound event...");
             await(inbound.nextEvent(), new MessageHandler());
         }
     }
@@ -29,16 +28,21 @@ public class ServerController extends WebSocketController {
 
         @Override
         public void invoke(WebSocketEvent e) {
+            System.out.println("Received websocketevent " + e);
             if(e instanceof Http.WebSocketFrame) {
                 Http.WebSocketFrame frame = (Http.WebSocketFrame)e;
                 try {
                     Person p = (Person) new ObjectInputStream(new ByteArrayInputStream(frame.binaryData)).readObject();
                     System.out.println("Received person: " + p);
+
                     ByteArrayOutputStream out =new ByteArrayOutputStream();
                     new ObjectOutputStream(out).writeObject(p);
                     System.out.println("Sending it back");
                     byte opcode = 0x2; //binary
                     outbound.send(opcode, out.toByteArray());
+                    out.flush();
+                    out.close();
+
 
                 } catch (IOException e1) {
                     e1.printStackTrace();
