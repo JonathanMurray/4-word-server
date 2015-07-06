@@ -20,14 +20,7 @@ public class ServerController extends WebSocketController {
 
         while(inbound.isOpen()){
             System.out.println("Waiting for next inbound event...");
-            await(inbound.nextEvent(), new MessageHandler());
-        }
-    }
-
-    private static class MessageHandler implements F.Action<WebSocketEvent> {
-
-        @Override
-        public void invoke(WebSocketEvent e) {
+            WebSocketEvent e = await(inbound.nextEvent());
             System.out.println("Received websocketevent " + e);
             if(e instanceof Http.WebSocketFrame) {
                 Http.WebSocketFrame frame = (Http.WebSocketFrame)e;
@@ -54,7 +47,5 @@ public class ServerController extends WebSocketController {
                 Logger.info("Socket closed!");
             }
         }
-
     }
-
 }
