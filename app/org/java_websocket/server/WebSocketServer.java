@@ -71,7 +71,7 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 	 */
 	private Selector selector;
 	/**
-	 * The Draft of the WebSocket protocol the Server is adhering to.
+	 * The Draft of the WebSocket protocol the ServerController is adhering to.
 	 */
 	private List<Draft> drafts;
 
