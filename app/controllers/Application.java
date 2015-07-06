@@ -1,16 +1,30 @@
 package controllers;
 
-import play.*;
-import play.mvc.*;
+import play.Logger;
+import play.mvc.Http;
+import play.mvc.WebSocketController;
 
-import java.util.*;
+public class Application extends WebSocketController {
 
-import models.*;
+    public static void connect() {
+        while(inbound.isOpen()){
+            Http.WebSocketEvent e = await(inbound.nextEvent());
+            if(e instanceof Http.WebSocketFrame) {
+                Http.WebSocketFrame frame = (Http.WebSocketFrame)e;
 
-public class Application extends Controller {
-
-    public static void index() {
-        render();
+                if(!frame.isBinary) {
+                    if(frame.textData.equals("quit")) {
+                        outbound.send("Bye!");
+                        disconnect();
+                    } else {
+                        outbound.send("Echo: %s", frame.textData);
+                    }
+                }
+            }
+            if(e instanceof Http.WebSocketClose) {
+                Logger.info("Socket closed!");
+            }
+        }
     }
 
 }
