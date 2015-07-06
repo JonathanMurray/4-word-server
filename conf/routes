@@ -3,4 +3,4 @@
 # ~~~~
 
 # Home page
-WS     /                                       Server.connect
+WS     /                                       ServerController.connect
