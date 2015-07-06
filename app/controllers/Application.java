@@ -7,6 +7,7 @@ import play.mvc.WebSocketController;
 public class Application extends WebSocketController {
 
     public static void connect() {
+        System.out.println("connect");
         while(inbound.isOpen()){
             Http.WebSocketEvent e = await(inbound.nextEvent());
             if(e instanceof Http.WebSocketFrame) {
@@ -17,6 +18,7 @@ public class Application extends WebSocketController {
                         outbound.send("Bye!");
                         disconnect();
                     } else {
+                        System.out.println("Echoing to client: " + frame.textData);
                         outbound.send("Echo: %s", frame.textData);
                     }
                 }
