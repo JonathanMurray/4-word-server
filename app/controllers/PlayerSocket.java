@@ -1,4 +1,4 @@
-package server;
+package controllers;
 
 import fourword_shared.messages.ClientMsg;
 import fourword_shared.messages.Msg;

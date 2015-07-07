@@ -1,4 +1,4 @@
-package server;
+package controllers;
 
 import fourword_shared.model.*;
 import fourword_shared.messages.*;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Created by jonathan on 2015-06-26.
  */
 public class ServerGameBehaviour implements Runnable{
-    private static final String HOME_DIR = server.EnvironmentVars.homeDir();
+    private static final String HOME_DIR = EnvironmentVars.homeDir();
 
     private static final File[] WORDLIST_FILES = new File[]{
             new File(HOME_DIR, "swedish-word-list-2-letters"),
@@ -23,10 +23,10 @@ public class ServerGameBehaviour implements Runnable{
 
     private final Dictionary dictionary = Dictionary.fromFiles(WORDLIST_FILES);
     private final ScoreCalculator scoreCalculator = new ScoreCalculator(dictionary);
-    private final server.GameObject game;
+    private final GameObject game;
     private final int numPlayers;
     private int currentPlayerIndex;
-    private final List<server.PlayerSocket> sockets;
+    private final List<PlayerSocket> sockets;
     private final List<GridModel> grids;
     private int numPlacedLetters;
     private final int numCols;
@@ -34,7 +34,7 @@ public class ServerGameBehaviour implements Runnable{
     private final int numCells;
     private final GameListener listener;
 
-    public ServerGameBehaviour(GameListener listener, server.GameObject game){
+    public ServerGameBehaviour(GameListener listener, GameObject game){
         this.sockets = game.playerSockets;
         this.grids = game.grids;
         numCols = grids.get(0).getNumCols();
@@ -52,7 +52,7 @@ public class ServerGameBehaviour implements Runnable{
 //            broadcast(new MsgGameIsStarting(numCols, numRows)); //already sent in other thread
             boolean running = true;
             while(running){
-                server.PlayerSocket currentPlayer = sockets.get(currentPlayerIndex);
+                PlayerSocket currentPlayer = sockets.get(currentPlayerIndex);
 
                 //Sleep before the next turn, for better user experience
                 sleep(500);
@@ -175,7 +175,7 @@ public class ServerGameBehaviour implements Runnable{
     }
 
     private void broadcast(Msg<ServerMsg> msg) throws IOException {
-        for(server.PlayerSocket socket : sockets){
+        for(PlayerSocket socket : sockets){
             sendToPlayer(socket, msg);
         }
     }
@@ -188,11 +188,11 @@ public class ServerGameBehaviour implements Runnable{
         }
     }
 
-    private void sendToPlayer(server.PlayerSocket socket, Msg<ServerMsg> msg) throws IOException {
+    private void sendToPlayer(PlayerSocket socket, Msg<ServerMsg> msg) throws IOException {
         socket.sendMessage(msg);
     }
 
-    private Msg<ClientMsg> receiveFromPlayer(server.PlayerSocket socket) throws IOException, ClassNotFoundException {
+    private Msg<ClientMsg> receiveFromPlayer(PlayerSocket socket) throws IOException, ClassNotFoundException {
         Msg<ClientMsg> msg = socket.receiveMessage();
         return msg;
     }
@@ -208,8 +208,8 @@ public class ServerGameBehaviour implements Runnable{
 
 
     public interface GameListener {
-        void gameFinished(server.GameObject game);
-        void gameCrashed(server.GameObject game);
+        void gameFinished(GameObject game);
+        void gameCrashed(GameObject game);
     }
 
 

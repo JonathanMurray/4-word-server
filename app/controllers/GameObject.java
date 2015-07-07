@@ -1,7 +1,6 @@
-package server;
+package controllers;
 
 import fourword_shared.model.GridModel;
-import server.PlayerSocket;
 
 import java.util.ArrayList;
 
