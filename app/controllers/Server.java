@@ -20,6 +20,7 @@ public class Server implements ServerGameBehaviour.GameListener {
 
     public List<String> TEST_VALUES = new ArrayList<String>();
 
+    public List<InOut> channels = new ArrayList();
 
 
     private ServerSocket serverSocket;

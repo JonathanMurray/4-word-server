@@ -25,6 +25,8 @@ public class ServerController extends WebSocketController {
     public static void connect() {
         System.out.println("A client has connected");
 
+        Server.INSTANCE.channels.add(new InOut(inbound, outbound));
+
         while(inbound.isOpen()){
             System.out.println("Waiting for next inbound event...");
             WebSocketEvent e = await(inbound.nextEvent());
@@ -86,11 +88,19 @@ public class ServerController extends WebSocketController {
             printSession(session);
             System.out.println();
 
+
+
             System.out.println("Received msg: " + msg);
 //            System.out.println("Sending reply...");
             byte opcode = 0x2; //binary
             Server.INSTANCE.TEST_VALUES.add("X" + new Random().nextInt(1000));
-            outbound.send(opcode, bytesFromObject(new MsgStringList(ServerMsg.ONLINE_PLAYERS, new ArrayList<String>(Server.INSTANCE.TEST_VALUES))));
+
+            for(InOut inout : Server.INSTANCE.channels){
+                inout.outbound.send(opcode, bytesFromObject(new MsgStringList(ServerMsg.ONLINE_PLAYERS, new ArrayList<String>(Server.INSTANCE.TEST_VALUES))));
+            }
+
+
+
         } catch (IOException e1) {
             e1.printStackTrace();
         }
