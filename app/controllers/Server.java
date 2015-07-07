@@ -18,6 +18,9 @@ public class Server implements ServerGameBehaviour.GameListener {
 
     public static Server INSTANCE = new Server();
 
+    public List<String> TEST_VALUES = new ArrayList<String>();
+
+
 
     private ServerSocket serverSocket;
     private List<String> playerNames = new ArrayList<String>();

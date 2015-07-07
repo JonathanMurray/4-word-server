@@ -63,8 +63,8 @@ public class ServerController extends WebSocketController {
             System.out.println("Received msg: " + msg);
             System.out.println("Sending it back");
             byte opcode = 0x2; //binary
-            Server.INSTANCE.addPlayer("X" + new Random().nextInt(1000), null);
-            outbound.send(opcode, bytesFromObject(new MsgStringList(ServerMsg.ONLINE_PLAYERS, Server.INSTANCE.playerNames())));
+            Server.INSTANCE.TEST_VALUES.add("X" + new Random().nextInt(1000));
+            outbound.send(opcode, bytesFromObject(new MsgStringList(ServerMsg.ONLINE_PLAYERS, new ArrayList<String>(Server.INSTANCE.TEST_VALUES))));
         } catch (IOException e1) {
             e1.printStackTrace();
         }
