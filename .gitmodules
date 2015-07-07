@@ -1,3 +1,0 @@
-[submodule "app/4-word-shared"]
-	path = app/fourword_shared
-	url = https://github.com/JonathanMurray/4-word-shared
