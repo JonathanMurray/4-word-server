@@ -66,28 +66,28 @@ public class ServerController extends WebSocketController {
     }
 
     private static void printSession(Scope.Session s){
-        System.out.println("---Session:");
-        System.out.println("id: " + s.getId());
-        System.out.println("auth-token: " + s.getAuthenticityToken());
+        System.out.println("session id: " + s.getId());
+        System.out.println("session auth-token: " + s.getAuthenticityToken());
     }
 
 
 
     private static void handleMessage(Msg<ClientMsg> msg){
         try {
-            System.out.println();
-            System.out.println("request: " + request);
-            System.out.println("params: " + params);
-            System.out.println("validation: " + validation);
-            System.out.println("session: " + session);
+//            System.out.println("request: " + request);
+//            System.out.println("params: " + params);
+//            System.out.println("validation: " + validation);
+//            System.out.println("session: " + session);
 
 
-            printRequest(request);
+//            printRequest(request);
+            System.out.println("req controller: " + request.controller);
+            System.out.println("req remoteAddr: " + request.remoteAddress);
             printSession(session);
             System.out.println();
 
             System.out.println("Received msg: " + msg);
-            System.out.println("Sending reply...");
+//            System.out.println("Sending reply...");
             byte opcode = 0x2; //binary
             Server.INSTANCE.TEST_VALUES.add("X" + new Random().nextInt(1000));
             outbound.send(opcode, bytesFromObject(new MsgStringList(ServerMsg.ONLINE_PLAYERS, new ArrayList<String>(Server.INSTANCE.TEST_VALUES))));
