@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/play-1-test.iml" filepath="$PROJECT_DIR$/play-1-test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/fourword_server.iml" filepath="$PROJECT_DIR$/fourword_server.iml" />
     </modules>
   </component>
 </project>
