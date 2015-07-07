@@ -6,6 +6,7 @@ import fourword_shared.model.LobbyPlayer;
 import play.Logger;
 import play.mvc.Http;
 import play.mvc.Http.WebSocketEvent;
+import play.mvc.Scope;
 import play.mvc.WebSocketController;
 
 import java.io.*;
@@ -32,6 +33,7 @@ public class ServerController extends WebSocketController {
                 Http.WebSocketFrame frame = (Http.WebSocketFrame)e;
                 try {
                     Msg<ClientMsg> msg = objectFromBytes(frame.binaryData);
+//                    handleClientMessage(msg);
                     handleMessage(msg);
                 } catch (IOException e1) {
                     e1.printStackTrace();
@@ -55,13 +57,37 @@ public class ServerController extends WebSocketController {
         return out.toByteArray();
     }
 
+    private static void printRequest(Http.Request req){
+        System.out.println("---Request:");
+        System.out.println("action: " + req.action);
+        System.out.println("host: " + req.host);
+        System.out.println("domain: " + req.domain);
+        System.out.println("remoteaddr: " + req.remoteAddress);
+    }
+
+    private static void printSession(Scope.Session s){
+        System.out.println("---Session:");
+        System.out.println("id: " + s.getId());
+        System.out.println("auth-token: " + s.getAuthenticityToken());
+    }
+
 
 
     private static void handleMessage(Msg<ClientMsg> msg){
         try {
+            System.out.println();
+            System.out.println("request: " + request);
+            System.out.println("params: " + params);
+            System.out.println("validation: " + validation);
+            System.out.println("session: " + session);
+
+
+            printRequest(request);
+            printSession(session);
+            System.out.println();
 
             System.out.println("Received msg: " + msg);
-            System.out.println("Sending it back");
+            System.out.println("Sending reply...");
             byte opcode = 0x2; //binary
             Server.INSTANCE.TEST_VALUES.add("X" + new Random().nextInt(1000));
             outbound.send(opcode, bytesFromObject(new MsgStringList(ServerMsg.ONLINE_PLAYERS, new ArrayList<String>(Server.INSTANCE.TEST_VALUES))));
@@ -193,4 +219,78 @@ public class ServerController extends WebSocketController {
 //        }
 //        return false; //Thread is not done yet
 //    }
+//
+//    private void handleInvite(MsgText inviteMsg) throws IOException {
+//        String invitedName = inviteMsg.text;
+//        String inviterName = thisSocket.getName();
+//        boolean playerFound, selfInvite;
+//        PlayerSocket invitedSocket;
+//
+//        invitedSocket = server.getSocket(invitedName);
+//        playerFound = server.containsPlayer(invitedName) && invitedSocket.isRemote();
+//        selfInvite = inviterName.equals(invitedName);
+//        if(selfInvite){
+//            thisSocket.sendMessage(new MsgText(ServerMsg.NO, "You can't invite yourself!"));
+//        }else if(!playerFound){
+//            thisSocket.sendMessage(new MsgText(ServerMsg.NO, "Can't find that player!"));
+//        }else if(invitedSocket.isInvited()) {
+//            thisSocket.sendMessage(new MsgText(ServerMsg.NO, "That player already has a pending invite!"));
+//        }else if(invitedSocket.isInLobby()) {
+//            thisSocket.sendMessage(new MsgText(ServerMsg.NO, "That player is already in a lobby!"));
+//        }else{
+//            thisSocket.sendMessage(new Msg(ServerMsg.OK));
+//            thisSocket.getLobby().addPlayer(LobbyPlayer.pendingHuman(invitedName));
+//            invitedSocket.sendMessage(new MsgText(ServerMsg.YOU_ARE_INVITED, inviterName));
+//            broadcastLobbyState(thisSocket.getLobby());
+//            invitedSocket.setInvitedBy(inviterName);
+//            server.printState();
+//        }
+//    }
+//
+//    private void handleKick(MsgText kickMsg) throws IOException {
+//        String kickedPlayer = kickMsg.text;
+//        PlayerSocket kickedSocket = server.getSocket(kickedPlayer);
+//        kickedSocket.sendMessage(new Msg(ServerMsg.YOU_WERE_KICKED));
+//        leaveLobby(kickedSocket);
+//    }
+//
+//    private void leaveLobby(PlayerSocket socket) throws IOException {
+//        Lobby lobby = socket.getLobby();
+//        boolean isHost = socket.isHostOfLobby();
+//        socket.leaveLobby();
+//        lobby.removePlayer(socket.getName());
+//
+//        if(isHost){
+//            ArrayList<LobbyPlayer> otherHumansInLobby = lobby.getAllHumans();
+//            if(otherHumansInLobby.isEmpty()){
+//                for(LobbyPlayer bot : lobby.getAllBots()){
+//                    server.removePlayer(bot.name);
+//                }
+//                server.removeLobby(socket.getName());
+//            }else{
+//                String newHost = otherHumansInLobby.get(0).name;
+//                lobby.setNewHost(newHost);
+//            }
+//        }
+//        broadcastLobbyState(lobby);
+//        server.printState();
+//    }
+//
+//
+//
+//    //Not sent to bots
+//    public void broadcastLobbyState(Lobby lobby) throws IOException {
+//        broadcastInLobby(lobby, new MsgLobbyState(lobby));
+//    }
+//
+//    //Not sent to bots
+//    public void broadcastInLobby(Lobby lobby, Msg<ServerMsg> msg) throws IOException {
+//        for(String playerInLobby : lobby.sortedNames()){
+//            if(lobby.isConnected(playerInLobby) && lobby.isHuman(playerInLobby)){
+//                server.getSocket(playerInLobby).sendMessage(msg);
+//            }
+//        }
+//    }
+
+
 }
