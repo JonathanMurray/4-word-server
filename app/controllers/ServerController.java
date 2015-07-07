@@ -1,10 +1,8 @@
 package controllers;
 
-import models.Msg;
-import models.Person;
-import org.java_websocket.util.Base64;
+import fourword_shared.messages.ClientMsg;
+import fourword_shared.messages.Msg;
 import play.Logger;
-import play.libs.F;
 import play.mvc.Http;
 import play.mvc.Http.WebSocketEvent;
 import play.mvc.WebSocketController;
@@ -27,7 +25,7 @@ public class ServerController extends WebSocketController {
             if(e instanceof Http.WebSocketFrame) {
                 Http.WebSocketFrame frame = (Http.WebSocketFrame)e;
                 try {
-                    Msg msg = objectFromBytes(frame.binaryData);
+                    Msg<ClientMsg> msg = objectFromBytes(frame.binaryData);
                     handleMessage(msg);
                 } catch (IOException e1) {
                     e1.printStackTrace();
@@ -53,7 +51,7 @@ public class ServerController extends WebSocketController {
 
 
 
-    private static void handleMessage(Msg msg){
+    private static void handleMessage(Msg<ClientMsg> msg){
         try {
 
             System.out.println("Received msg: " + msg);
