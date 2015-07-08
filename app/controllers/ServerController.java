@@ -38,7 +38,7 @@ public class ServerController extends WebSocketController {
                 ));
                 Logger.info(s + "Some event arrived!");
 
-                for(Msg<ServerMsg> serverMsg : F.Matcher.ClassOf(Msg.class).match(event._1)){
+                for(Msg serverMsg : F.Matcher.ClassOf(Msg.class).match(event._1)){
                     Logger.info(s + "Sending to client: " + serverMsg);
                     sendMessage(serverMsg);
                 }
@@ -49,9 +49,13 @@ public class ServerController extends WebSocketController {
                     serverEventStream.publish(new MsgText<ServerMsg>(ServerMsg.ONLINE_PLAYERS, "Someone said: '" + msg.toString() + "'!"));
                 }
 
-                for(WebSocketEvent fromClient : F.Matcher.ClassOf(Http.WebSocketClose.class).match(event._2)){
+                for(Http.WebSocketClose fromClient : F.Matcher.ClassOf(Http.WebSocketClose.class).match(event._2)){
                     Logger.info(s + "Socket closed!");
                 }
+
+                Logger.info(s + "The event was: " + event);
+
+
             }
 
         }catch(IOException e){
