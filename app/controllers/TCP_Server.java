@@ -16,12 +16,7 @@ import java.util.Map;
  */
 public class TCP_Server implements ServerGameBehaviour.GameListener {
 
-    public static TCP_Server INSTANCE = new TCP_Server();
-
-    public List<String> TEST_VALUES = new ArrayList<String>();
-
-    public List<InOut> channels = new ArrayList();
-
+//    public static TCP_Server INSTANCE = new TCP_Server();
 
     private ServerSocket serverSocket;
     private List<String> playerNames = new ArrayList<String>();
@@ -52,7 +47,7 @@ public class TCP_Server implements ServerGameBehaviour.GameListener {
                     System.out.println("Accepted new socket: " + socket);
                     printState();
                     boolean isLoggedIn = false;
-                    ServerPlayerThread newPlayerThread = new ServerPlayerThread(this, isLoggedIn, socket);
+                    TCP_ServerPlayerThread newPlayerThread = new TCP_ServerPlayerThread(this, isLoggedIn, socket);
 //                playerThreads.add(newPlayerThread);
                     new Thread(newPlayerThread).start();
                 } catch (IOException e) {
@@ -160,7 +155,7 @@ public class TCP_Server implements ServerGameBehaviour.GameListener {
                 RemoteSocket remoteSocket = (RemoteSocket) socket;
                 final boolean isLoggedIn = true;
                 new Thread(
-                        new ServerPlayerThread(this, isLoggedIn, remoteSocket)).start();
+                        new TCP_ServerPlayerThread(this, isLoggedIn, remoteSocket)).start();
             }else{
                 //Remote all data for the bot. It's job is done.
                 playerNames.remove(socket.getName());
