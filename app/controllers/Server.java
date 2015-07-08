@@ -14,4 +14,8 @@ public class Server {
 
     F.ArchivedEventStream<Msg<ServerMsg>> events = new F.ArchivedEventStream(MAX_ARCHIVED_EVENTS);
 
+    static{
+
+    }
+
 }

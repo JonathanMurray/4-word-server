@@ -24,13 +24,13 @@ public class ServerController extends WebSocketController {
 
 
     public static void connect() {
-        System.out.println("A client has connected");
-        final EventStream<Msg<ServerMsg>> events = server.events.eventStream();
+        Logger.info("A client has connected ( remote addr: " + request.remoteAddress + ")");
+        final EventStream<Msg<ServerMsg>> serverEventStream = server.events.eventStream();
         try{
             while(inbound.isOpen()){
 
                 Either<Msg<ServerMsg>, WebSocketEvent> event = await(Promise.waitEither(
-                        events.nextEvent(),
+                        serverEventStream.nextEvent(),
                         inbound.nextEvent()
                 ));
 
@@ -42,7 +42,7 @@ public class ServerController extends WebSocketController {
                 for(Http.WebSocketFrame fromClient : F.Matcher.ClassOf(Http.WebSocketFrame.class).match(event._2)){
                     Msg<ClientMsg> msg = objectFromBytes(fromClient.binaryData);
                     Logger.info("Received from client: " + msg);
-                    events.publish(new MsgText<ServerMsg>(ServerMsg.ONLINE_PLAYERS, "Someone said: '" + msg.toString() + "'!"));
+                    serverEventStream.publish(new MsgText<ServerMsg>(ServerMsg.ONLINE_PLAYERS, "Someone said: '" + msg.toString() + "'!"));
                 }
 
                 for(WebSocketEvent fromClient : F.Matcher.ClassOf(Http.WebSocketClose.class).match(event._2)){
@@ -51,10 +51,11 @@ public class ServerController extends WebSocketController {
             }
 
         }catch(IOException e){
-
+            Logger.info("IOException: " + e.getMessage());
         }catch(ClassNotFoundException e){
-
+            Logger.info("ClassNotFound: " + e.getMessage());
         }
+        Logger.info("A client has disconnected");
 
     }
 
