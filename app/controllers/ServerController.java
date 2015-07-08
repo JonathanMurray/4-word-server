@@ -24,41 +24,42 @@ public class ServerController extends WebSocketController {
 
 
     public static void connect() {
+        String s = "[" + request.remoteAddress + "]: ";
         Logger.info("A client has connected ( remote addr: " + request.remoteAddress + ")");
         final EventStream<Msg<ServerMsg>> serverEventStream = server.events.eventStream();
-        Logger.info("Client received event stream: " + serverEventStream + " from " + server.events);
+        Logger.info(s + "Client received event stream: " + serverEventStream + " from " + server.events);
         try{
             while(inbound.isOpen()){
 
-                Logger.info("Waiting for something ...");
+                Logger.info(s + "Waiting for something ...");
                 Either<Msg<ServerMsg>, WebSocketEvent> event = await(Promise.waitEither(
                         serverEventStream.nextEvent(),
                         inbound.nextEvent()
                 ));
-                Logger.info("Some event arrived!");
+                Logger.info(s + "Some event arrived!");
 
                 for(Msg<ServerMsg> serverMsg : F.Matcher.ClassOf(Msg.class).match(event._1)){
-                    Logger.info("Sending to client: " + serverMsg);
+                    Logger.info(s + "Sending to client: " + serverMsg);
                     sendMessage(serverMsg);
                 }
 
                 for(Http.WebSocketFrame fromClient : F.Matcher.ClassOf(Http.WebSocketFrame.class).match(event._2)){
                     Msg<ClientMsg> msg = objectFromBytes(fromClient.binaryData);
-                    Logger.info("Received from client: " + msg);
+                    Logger.info(s + "Received from client: " + msg);
                     serverEventStream.publish(new MsgText<ServerMsg>(ServerMsg.ONLINE_PLAYERS, "Someone said: '" + msg.toString() + "'!"));
                 }
 
                 for(WebSocketEvent fromClient : F.Matcher.ClassOf(Http.WebSocketClose.class).match(event._2)){
-                    Logger.info("Socket closed!");
+                    Logger.info(s + "Socket closed!");
                 }
             }
 
         }catch(IOException e){
-            Logger.info("IOException: " + e.getMessage());
+            Logger.info(s + "IOException: " + e.getMessage());
         }catch(ClassNotFoundException e){
-            Logger.info("ClassNotFound: " + e.getMessage());
+            Logger.info(s + "ClassNotFound: " + e.getMessage());
         }
-        Logger.info("A client has disconnected");
+        Logger.info(s + "A client has disconnected");
 
     }
 
