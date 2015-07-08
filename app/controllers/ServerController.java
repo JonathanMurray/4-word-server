@@ -26,8 +26,8 @@ public class ServerController extends WebSocketController {
     public static void connect() {
         String s = "[" + request.remoteAddress + "]: ";
         Logger.info("A client has connected ( remote addr: " + request.remoteAddress + ")");
-        final EventStream<Msg<ServerMsg>> serverEventStream = server.events.eventStream();
-        Logger.info(s + "Client received event stream: " + serverEventStream + " from " + server.events);
+        final EventStream<Msg<ServerMsg>> serverEventStream = server.stream();
+//        Logger.info(s + "Client received event stream: " + serverEventStream + " from " + server.events);
         try{
             while(inbound.isOpen()){
 
@@ -46,7 +46,7 @@ public class ServerController extends WebSocketController {
                 for(Http.WebSocketFrame fromClient : F.Matcher.ClassOf(Http.WebSocketFrame.class).match(event._2)){
                     Msg<ClientMsg> msg = objectFromBytes(fromClient.binaryData);
                     Logger.info(s + "Received from client: " + msg);
-                    serverEventStream.publish(new MsgText<ServerMsg>(ServerMsg.ONLINE_PLAYERS, "Someone said: '" + msg.toString() + "'!"));
+                    server.publish(new MsgText<ServerMsg>(ServerMsg.ONLINE_PLAYERS, "Someone said: '" + msg.toString() + "'!"));
                 }
 
                 for(Http.WebSocketClose fromClient : F.Matcher.ClassOf(Http.WebSocketClose.class).match(event._2)){
