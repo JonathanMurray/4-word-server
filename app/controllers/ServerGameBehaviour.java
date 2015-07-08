@@ -35,7 +35,8 @@ public class ServerGameBehaviour implements Runnable{
     private final GameListener listener;
 
     public ServerGameBehaviour(GameListener listener, GameObject game){
-        this.sockets = game.playerSockets;
+//        this.sockets = game.playerSockets;
+        this.sockets  = null; //TODO
         this.grids = game.grids;
         numCols = grids.get(0).getNumCols();
         numRows = grids.get(0).getNumRows();
