@@ -26,13 +26,16 @@ public class ServerController extends WebSocketController {
     public static void connect() {
         Logger.info("A client has connected ( remote addr: " + request.remoteAddress + ")");
         final EventStream<Msg<ServerMsg>> serverEventStream = server.events.eventStream();
+        Logger.info("Client received event stream: " + serverEventStream + " from " + server.events);
         try{
             while(inbound.isOpen()){
 
+                Logger.info("Waiting for something ...");
                 Either<Msg<ServerMsg>, WebSocketEvent> event = await(Promise.waitEither(
                         serverEventStream.nextEvent(),
                         inbound.nextEvent()
                 ));
+                Logger.info("Some event arrived!");
 
                 for(Msg<ServerMsg> serverMsg : F.Matcher.ClassOf(Msg.class).match(event._1)){
                     Logger.info("Sending to client: " + serverMsg);
