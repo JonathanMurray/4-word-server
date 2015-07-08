@@ -10,7 +10,7 @@ import java.util.ArrayList;
 public class GameObject {
     private int numPlayers;
     private String host;
-    public ArrayList<PlayerSocket> playerSockets = new ArrayList();
+    public ArrayList<String> playerSockets = new ArrayList();
     public ArrayList<GridModel> grids = new ArrayList();
     private final int numCols;
     private final int numRows;
@@ -23,11 +23,11 @@ public class GameObject {
         this.numRows = numRows;
     }
 
-    public void join(PlayerSocket socket){
-        playerSockets.add(socket);
+    public void join(String player){
+        playerSockets.add(player);
         GridModel grid = new GridModel(numCols, numRows);
         grids.add(grid);
-        socket.initializeWithGrid(grid);
+//        socket.initializeWithGrid(grid);
     }
 
     public String getHostName(){
