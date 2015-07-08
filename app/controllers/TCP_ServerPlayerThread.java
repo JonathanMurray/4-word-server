@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Created by jonathan on 2015-06-27.
  */
-public class ServerPlayerThread implements Runnable {
+public class TCP_ServerPlayerThread implements Runnable {
 
     private final PlayerSocket thisSocket;
 
@@ -22,9 +22,9 @@ public class ServerPlayerThread implements Runnable {
 //    private Object playersLock = new Object();
     private boolean isLoggedIn;
 
-    private final Server server;
+    private final TCP_Server server;
 
-    ServerPlayerThread(Server server, boolean isLoggedIn, RemoteSocket socket) {
+    TCP_ServerPlayerThread(TCP_Server server, boolean isLoggedIn, RemoteSocket socket) {
         this.server = server;
         this.isLoggedIn = isLoggedIn;
         this.thisSocket = socket;
