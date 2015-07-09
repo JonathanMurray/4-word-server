@@ -75,7 +75,7 @@ public class TCP_Server{
 //
 //    boolean joinGameHostedBy(String hostName, String joiningPlayer){
 //        GameObject game = hostGameMap.get(hostName);
-//        game.join(nameSocketMap.get(joiningPlayer));
+//        game.addHuman(nameSocketMap.get(joiningPlayer));
 //        if(game.isReadyToStart()){
 //            ServerGameBehaviour gameThread = new ServerGameBehaviour(this, game);
 //            new Thread(gameThread).start();
@@ -120,7 +120,7 @@ public class TCP_Server{
 //                    humanNames.add(socket.getName());
 //                }
 //            }
-//            broadcastToHumans(new MsgStringList(ServerMsg.ONLINE_PLAYERS, humanNames));
+//            broadcastToHumans(new MsgStringList(ServerMsg.ONLINE_PLAYERS_INFO, humanNames));
 //        } catch (IOException e) {
 //            e.printStackTrace();
 //        }
@@ -258,7 +258,7 @@ public class TCP_Server{
 //        return new ArrayList<String>(playerNames);
 //    }
 //
-//    synchronized void removeLobby(String host) {
+//    synchronized void removeEmptyLobby(String host) {
 //        hostLobbyMap.remove(host);
 //    }
 //

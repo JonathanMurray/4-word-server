@@ -150,7 +150,7 @@ public class TCP_ServerPlayerThread{
 //                String host = ((MsgText)msg).text;
 //                boolean newGameStarted = server.joinGameHostedBy(host, thisSocket.getName());
 //                if(newGameStarted){
-//                    server.removeLobby(host);
+//                    server.removeEmptyLobby(host);
 //                }
 //                thisSocket.leaveLobby();
 //                server.printState();
@@ -194,7 +194,7 @@ public class TCP_ServerPlayerThread{
 //                for(LobbyPlayer bot : lobby.getAllBots()){
 //                    server.removePlayer(bot.name);
 //                }
-//                server.removeLobby(socket.getName());
+//                server.removeEmptyLobby(socket.getName());
 //            }else{
 //                String newHost = otherHumansInLobby.get(0).name;
 //                lobby.setNewHost(newHost);

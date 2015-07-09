@@ -33,11 +33,11 @@ public class AI {
                 char letter = randomLetter();
                 randomEmptyCell = randomEmptyCell();
                 grid.setCharAtCell(letter, randomEmptyCell);
-                return new MsgPickAndPlaceLetter(letter, randomEmptyCell);
+                return new Msg.PickAndPlaceLetter(letter, randomEmptyCell);
             case DO_PLACE_LETTER:
                 randomEmptyCell = randomEmptyCell();
-                grid.setCharAtCell(((MsgRequestPlaceLetter)msg).letter, randomEmptyCell);
-                return new MsgPlaceLetter(randomEmptyCell);
+                grid.setCharAtCell(((Msg.RequestPlaceLetter)msg).letter, randomEmptyCell);
+                return new Msg.PlaceLetter(randomEmptyCell);
             default:
                 return null;
         }
