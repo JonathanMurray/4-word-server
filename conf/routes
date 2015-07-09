@@ -3,4 +3,5 @@
 # ~~~~
 
 # Home page
-WS     /                                       ServerController.connect
+WS     /{idString}                                   ServerController.connect
+

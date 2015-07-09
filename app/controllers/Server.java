@@ -17,7 +17,7 @@ import java.util.Map;
 public class Server implements ServerGameBehaviour.GameListener {
 
     public final static Server INSTANCE = new Server();
-    public final static int MAX_ARCHIVED_EVENTS = 100;
+    private final static int MAX_ARCHIVED_EVENTS = 100;
 
     private F.ArchivedEventStream<ServerEvent> events = new F.ArchivedEventStream(MAX_ARCHIVED_EVENTS);
 
@@ -25,31 +25,58 @@ public class Server implements ServerGameBehaviour.GameListener {
         return events.eventStream();
     }
 
-    private List<String> onlinePlayers = new ArrayList<String>();
 
-    private HashMap<String, Lobby> hostLobbyMap = new HashMap<String, Lobby>();
-    private HashMap<String, GameObject> hostGameMap = new HashMap();
 
-    void createGameHostedBy(String hostName, int numPlayers, int numCols, int numRows){
-        hostGameMap.put(hostName, new GameObject(numPlayers, hostName, numCols, numRows));
+    private HashMap<String, UserId> lowerCaseNameIdMap = new HashMap<String, UserId>();
+//    private HashMap<UserId, String> onlinePlayers = new HashMap<UserId, String>();
+//    private HashMap<UserId, Lobby> hostLobbyMap = new HashMap<UserId, Lobby>();
+//    private HashMap<UserId, Lobby> invitedToLobbyMap = new HashMap<UserId, Lobby>();
+//    private HashMap<UserId, GameObject> hostGameMap = new HashMap<UserId, GameObject>();
+
+    private HashMap<UserId, Player> players = new HashMap<UserId, Player>();
+    private List<Lobby> lobbies = new ArrayList<Lobby>();
+    private List<GameObject> games = new ArrayList<GameObject>();
+
+
+
+    void createGameHostedBy(UserId host, int numPlayers, int numCols, int numRows){
+        GameObject newGame = new GameObject(numPlayers, host, numCols, numRows);
+        players.get(host).hostedGame = newGame;
+        games.add(newGame);
+        printState();
     }
 
-    List<String> createGameAndFillWithBots(String hostName, int numPlayers, int numCols, int numRows){
-        createGameHostedBy(hostName, numPlayers, numCols, numRows);
+    List<String> createGameAndFillWithBots(UserId host, int numPlayers, int numCols, int numRows){
+        createGameHostedBy(host, numPlayers, numCols, numRows);
         int numBots = numPlayers - 1;
         List<String> names = new ArrayList<String>();
-        names.add(hostName);
+        names.add(players.get(host).name);
         for(int i = 0; i < numBots; i++){
             String botName = generateBotName(names);
             names.add(botName);
-            joinGameHostedBy(hostName, botName);
+            joinGameHostedBy(host, botName);
         }
+        printState();
         return names;
     }
 
-    boolean joinGameHostedBy(String hostName, String joiningPlayer){
-        GameObject game = hostGameMap.get(hostName);
-        game.join(joiningPlayer);
+    void joinGame(UserId playerId, String hostName){
+        UserId hostId = lowerCaseNameIdMap.get(hostName);
+        Player host = players.get(hostId);
+        GameObject game = host.hostedGame;
+        game.join(playerId);
+        Player player = players.get(playerId);
+        if(game.isReadyToStart()){
+//            ServerGameBehaviour gameThread = new ServerGameBehaviour(this, game);
+//            new Thread(gameThread).start();
+//            return true;
+            player.memberOfLobby = null;
+        }
+    }
+
+    boolean joinGameHostedBy(UserId host, String joiningPlayer){
+        GameObject game = players.get(host).hostedGame;
+//        game.join(joiningPlayer);
         if(game.isReadyToStart()){
             ServerGameBehaviour gameThread = new ServerGameBehaviour(this, game);
             new Thread(gameThread).start();
@@ -71,27 +98,12 @@ public class Server implements ServerGameBehaviour.GameListener {
         throw new RuntimeException();
     }
 
-    private void sleep(int millis){
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-
-    private void printTitle() {
-        System.out.println();
-        System.out.println("------------------------------------------");
-        System.out.println("----------- Multiplayer_Server -----------");
-        System.out.println("------------------------------------------");
-        System.out.println();
-    }
-
     @Override
     public void gameFinished(GameObject game) {
-        hostGameMap.remove(game.getHostName());
+        UserId hostId = game.getHost();
+        Player host = players.get(hostId);
+        host.hostedGame = null;
+        games.remove(game);
 //        for(PlayerSocket socket : game.playerSockets){
 //            if(socket.isRemote()){
 //                RemoteSocket remoteSocket = (RemoteSocket) socket;
@@ -126,7 +138,10 @@ public class Server implements ServerGameBehaviour.GameListener {
 //        }catch(IOException e){
 //            e.printStackTrace();
 //        }
-        hostGameMap.remove(game.getHostName());
+        UserId hostId = game.getHost();
+        Player host = players.get(hostId);
+        host.hostedGame = null;
+        games.remove(game);
         events.publish(new ServerEvent.GameCrashed(game));
         printState();
     }
@@ -140,7 +155,7 @@ public class Server implements ServerGameBehaviour.GameListener {
 
     private String getStateString(){
         StringBuilder sb = new StringBuilder();
-        sb.append("Players: " + onlinePlayers + "\n");
+        sb.append("Players: " + players + "\n");
 //        if(nameSocketMap.isEmpty()){
 //            sb.append("Sockets: {}\n");
 //        }else{
@@ -148,110 +163,160 @@ public class Server implements ServerGameBehaviour.GameListener {
 //            appendMapToString(sb, nameSocketMap);
 //        }
 
-        if(hostLobbyMap.isEmpty()){
+        if(lobbies.isEmpty()){
             sb.append("Lobbies: {}\n");
         }else{
             sb.append("Lobbies:\n");
-            appendMapToString(sb, hostLobbyMap);
+            appendToString(sb, lobbies);
         }
 
-        if(hostGameMap.isEmpty()){
+        if(games.isEmpty()){
             sb.append("Games: {}\n");
         }else{
             sb.append("Games:\n");
-            appendMapToString(sb, hostGameMap);
+            appendToString(sb, games);
         }
 
         return sb.toString();
     }
 
-    private <K,V> StringBuilder appendMapToString(StringBuilder sb, HashMap<K, V> map){
+    private <K,V> StringBuilder appendToString(StringBuilder sb, HashMap<K, V> map){
         for(Map.Entry e : map.entrySet()) {
             sb.append("\t" + e.getKey() + ":  " + e.getValue() + "\n");
         }
         return sb;
     }
 
-    synchronized Lobby getLobbyOfHost(String invitedBy) {
-        return hostLobbyMap.get(invitedBy);
+    private <T> StringBuilder appendToString(StringBuilder sb, List<T> list){
+        for(T t : list){
+            sb.append("\t" + t + "\n");
+        }
+        return sb;
     }
 
-    void playerLoggedIn(String player){
-        onlinePlayers.add(player);
+    synchronized Lobby getLobbyOfHost(UserId host) {
+        return players.get(host).hostedLobby;
+    }
+
+
+    public Msg<ServerMsg> tryLogin(UserId userId, String loginName) {
+        boolean validName = ! lowerCaseNameIdMap.containsKey(loginName.toLowerCase());
+        if(validName){
+            playerLoggedIn(userId, loginName);
+            return new Msg(ServerMsg.OK);
+        }else{
+            return new MsgText(ServerMsg.NO, "That name is already in use!");
+        }
+    }
+
+    void playerLoggedIn(UserId userId, String playerName){
+        Player player = new Player();
+        player.name = playerName;
+        assertNotNull(userId, playerName);
+        players.put(userId, player);
+        lowerCaseNameIdMap.put(playerName.toLowerCase(), userId);
+        events.publish(new ServerEvent.LoggedIn(playerName));
         printState();
-        events.publish(new ServerEvent.LoggedIn(player));
     }
 
-    synchronized void playerLoggedOut(String player){
-        onlinePlayers.remove(player);
-        hostLobbyMap.remove(player);
-        events.publish(new ServerEvent.LoggedOut(player));
+    synchronized void playerLoggedOut(UserId player){
+        assertNotNull(player);
+        String playerName = players.get(player).name;
+        events.publish(new ServerEvent.LoggedOut(playerName));
+        lowerCaseNameIdMap.remove(playerName.toLowerCase());
+        players.remove(player);
+        //TODO handle case when the player was hosting a lobby
+        printState();
     }
 
-    synchronized public void addLobby(String name, Lobby newLobby) {
-        hostLobbyMap.put(name, newLobby);
-        events.publish(new ServerEvent.CreatedLobby(name));
+    synchronized public void createLobby(UserId host) {
+        Player player = players.get(host);
+        String hostName = player.name;
+        Lobby newLobby = new Lobby( hostName);
+        lobbies.add(newLobby);
+        player.hostedLobby = newLobby;
+        player.memberOfLobby = newLobby;
+        assertNotNull(host, newLobby);
+        events.publish(new ServerEvent.CreatedLobby(hostName));
+        printState();
     }
 
-//    synchronized void addPlayer(String name) throws IOException {
-//        onlinePlayers.add(name);
-////        nameSocketMap.put(name, socket);
-//        broadcastOnlineInfo();
-//    }
-
-    synchronized List<String> playerNames(){
-        return new ArrayList<String>(onlinePlayers);
+    private void assertNotNull(Object... args){
+        boolean someNull = false;
+        for(Object arg : args){
+            if(arg == null){
+                someNull = true;
+            }
+        }
+        if(someNull){
+            String s = "[";
+            for(Object arg : args){
+                s += arg + ", ";
+            }
+            s += "]";
+            throw new IllegalArgumentException("Some args are null: " + s);
+        }
     }
 
-    synchronized void removeLobby(String host) {
-        hostLobbyMap.remove(host);
+    synchronized void removeLobby(UserId host) {
+        Lobby lobby = players.get(host).hostedLobby;
+        lobbies.remove(lobby);
+        players.get(host).hostedLobby = null;
+        //TODO handle players who are "member of lobby"
+        printState();
     }
 
-    synchronized boolean validPlayerName(String name) {
-        return !onlinePlayers.contains(name) && name.length() > 0;
+    public Msg<ServerMsg> tryInviteToLobby(UserId inviterId, String invitedName) {
+        Player inviter = players.get(inviterId);
+
+        if(inviter.name.equals(invitedName)){
+            return new MsgText(ServerMsg.NO, "You can't invite yourself!");
+        }else if(!lowerCaseNameIdMap.containsKey(invitedName.toLowerCase())){
+            return new MsgText(ServerMsg.NO, "Can't find that player!");
+        }else{
+            UserId invitedId = lowerCaseNameIdMap.get(invitedName.toLowerCase());
+            Player invited = players.get(invitedId);
+            if(invited.invitedToLobby != null) { //TODO Handle player is already invited
+                return new MsgText(ServerMsg.NO, "That player already has a pending invite!");
+            }else if(invited.memberOfLobby != null) {//TODO Handle player is in obby
+                return (new MsgText(ServerMsg.NO, "That player is already in a lobby!"));
+            }else{
+                inviteToLobby(inviterId, invitedName);
+                return (new Msg(ServerMsg.OK));
+            }
+        }
     }
 
-//    synchronized PlayerSocket getSocket(String playerName) {
-//        return nameSocketMap.get(playerName);
-//    }
-
-    synchronized boolean containsPlayer(String name) {
-        return onlinePlayers.contains(name);
-    }
-
-    public void inviteToLobby(String name, Lobby lobby, String invitedName) {
+    public void inviteToLobby(UserId host, String invitedName) {
+        Lobby lobby = players.get(host).hostedLobby;
         lobby.addPlayer(LobbyPlayer.pendingHuman(invitedName));
+        UserId invited = lowerCaseNameIdMap.get(invitedName);
+        players.get(invited).invitedToLobby = lobby;
         events.publish(new ServerEvent.InvitedToLobby(invitedName, lobby));
         printState();
     }
 
-//    //Not sent to bots
-//    public static void broadcastLobbyState(Lobby lobby) throws IOException {
-//        broadcastInLobby(lobby, new MsgLobbyState(lobby));
-//    }
-//
-//    //Not sent to bots
-//    public static void broadcastInLobby(Lobby lobby, Msg<ServerMsg> msg) throws IOException {
-//        for(String playerInLobby : lobby.sortedNames()){
-//            if(lobby.isConnected(playerInLobby) && lobby.isHuman(playerInLobby)){
-//                getSocket(playerInLobby).sendMessage(msg);
-//            }
-//        }
-//    }
-
-    public void acceptInvite(String invited, Lobby lobby) {
-        lobby.setConnected(invited);
-        events.publish(new ServerEvent.JoinedLobby(invited, lobby));
+    public void acceptInvite(UserId invitedId) {
+        Player invited = players.get(invitedId);
+        Lobby lobby = invited.invitedToLobby;
+        lobby.setConnected(invited.name);
+        invited.invitedToLobby = null;
+        invited.memberOfLobby = lobby;
+        events.publish(new ServerEvent.JoinedLobby(invited.name, lobby));
         printState();
     }
 
-    public void declineInvite(String name, Lobby lobby) {
-        lobby.removePlayer(name);
-        events.publish(new ServerEvent.DeclinedInvite(name, lobby));
+    public void declineInvite(UserId invitedId) {
+        Player invited = players.get(invitedId);
+        Lobby lobby = invited.invitedToLobby;
+        lobby.removePlayer(invited.name);
+        invited.invitedToLobby = null;
+        events.publish(new ServerEvent.DeclinedInvite(invited.name, lobby));
         printState();
     }
 
-    public void addBotToLobby(Lobby lobby) {
+    public void addBotToLobby(UserId host) {
+        Lobby lobby = players.get(host).hostedLobby;
         String botName = generateBotName(lobby.sortedNames()); //TODO should be handled better
 //        botSocket.joinLobby(thisSocket.getLobby());
         lobby.addPlayer(LobbyPlayer.bot(botName));
@@ -259,41 +324,89 @@ public class Server implements ServerGameBehaviour.GameListener {
         printState();
     }
 
-    public void kickFromLobby(String kicker, String kicked) {
-        events.publish(new ServerEvent.KickedFromLobby(kicker, kicked));
+    public void kickFromLobby(UserId kicker, String kickedName) {
+        Lobby lobby = players.get(kicker).hostedLobby;
+        lobby.removePlayer(kickedName);
+        String kickerName = players.get(kicker).name;
+        UserId kickedId = lowerCaseNameIdMap.get(kickedName.toLowerCase());
+        Player kicked = players.get(kickedId);
+        kicked.memberOfLobby = null;
+        events.publish(new ServerEvent.KickedFromLobby(kickerName, lobby, kickedId));
+        printState();
     }
 
-    public void leaveLobby(String name, Lobby lobby) {
-
-        boolean isHost = lobby.getHost().equals(name);
-        lobby.removePlayer(name);
+    public void leaveLobby(UserId leaverId) {
+        Player leaver = players.get(leaverId);
+        boolean isHost = leaver.hostedLobby != null;
+        Lobby lobby = leaver.memberOfLobby;
+        lobby.removePlayer(leaver.name);
         if(isHost){
             ArrayList<LobbyPlayer> otherHumansInLobby = lobby.getAllHumans();
             if(otherHumansInLobby.isEmpty()){
 //                for(LobbyPlayer bot : lobby.getAllBots()){
 //                    server.removePlayer(bot.name);
 //                }
-                removeLobby(name); //TODO
+                removeLobby(leaverId); //TODO
             }else{
-                String newHost = otherHumansInLobby.get(0).name;
-                lobby.setNewHost(newHost);
+                String newHostName = otherHumansInLobby.get(0).name;
+                UserId newHost = lowerCaseNameIdMap.get(newHostName.toLowerCase());
+                lobby.setNewHost( newHostName);
             }
         }
 
         printState();
     }
 
-    public void startGameFromLobby(Lobby lobby) {
+    public boolean isPlayerInLobby(UserId player, Lobby lobby){
+        return lobby.containsPlayer(players.get(player).name);
+    }
+
+    public Msg<ServerMsg> tryStartGameFromLobby(UserId hostId){
+        Player host = players.get(hostId);
+        Lobby lobby = host.hostedLobby;
+        boolean enoughPlayers = lobby.size() > 1;
+        if(enoughPlayers){
+            startGameFromLobby(hostId);
+            return null;
+        }else{
+            return new MsgText(ServerMsg.NO, "Not enough playerNames!");
+        }
+    }
+
+    public void startGameFromLobby(UserId hostId) {
+        Player host = players.get(hostId);
+        Lobby lobby = host.hostedLobby;
+        host.hostedLobby = null;
         events.publish(new ServerEvent.LobbyGameStarting(lobby));
 //        broadcastInLobby(lobby, new MsgGameIsStarting(lobby.numCols, lobby.numRows, lobby.sortedNames().toArray(new String[0])));
-        createGameHostedBy(lobby.getHost(), lobby.size(), lobby.numCols, lobby.numRows);
+
+        createGameHostedBy(hostId, lobby.size(), lobby.numCols, lobby.numRows);
         for(LobbyPlayer bot : lobby.getAllBots()){
-            joinGameHostedBy(lobby.getHost(), bot.name);
+            joinGameHostedBy(hostId, bot.name);
         }
         printState();
     }
 
-    public void lobbyDimensionsChanged(Lobby lobby) {
+    public void changeLobbyDimensions(UserId hostId, int numCols, int numRows) {
+        Lobby lobby = players.get(hostId).hostedLobby;
+        lobby.numCols = numCols;
+        lobby.numRows = numRows;
         events.publish(new ServerEvent.LobbyDimensionsChanged(lobby));
+        printState();
+    }
+
+
+
+
+    private class Player{
+        String name;
+        Lobby hostedLobby;
+        Lobby invitedToLobby;
+        Lobby memberOfLobby;
+        GameObject hostedGame;
+
+        public String toString(){
+            return name;
+        }
     }
 }

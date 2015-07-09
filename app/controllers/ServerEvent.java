@@ -1,6 +1,7 @@
 package controllers;
 
 import fourword_shared.model.Lobby;
+import fourword_shared.model.LobbyPlayer;
 
 /**
  * Created by jonathan on 2015-07-08.
@@ -32,21 +33,25 @@ public class ServerEvent {
     }
 
     static class InvitedToLobby extends ServerEvent{
-        final String invited;
+        final String inviter;
+        final UserId invitedId;
         final Lobby lobby;
 
-        InvitedToLobby(String invited, Lobby lobby) {
-            this.invited = invited;
+        InvitedToLobby(String inviter, UserId invitedId, Lobby lobby) {
+            this.inviter = inviter;
+            this.invitedId = invitedId;
             this.lobby = lobby;
         }
     }
 
     static class KickedFromLobby extends ServerEvent{
         final String kicker;
-        final String kicked;
+        final UserId kicked;
+        final Lobby lobby;
 
-        KickedFromLobby(String kicker, String kicked) {
+        KickedFromLobby(String kicker, Lobby lobby, UserId kicked) {
             this.kicker = kicker;
+            this.lobby = lobby;
             this.kicked = kicked;
         }
     }

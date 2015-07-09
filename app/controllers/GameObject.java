@@ -9,37 +9,37 @@ import java.util.ArrayList;
  */
 public class GameObject {
     private int numPlayers;
-    private String host;
-    public ArrayList<String> playerSockets = new ArrayList();
+    private UserId host;
+    public ArrayList<UserId> players = new ArrayList();
     public ArrayList<GridModel> grids = new ArrayList();
     private final int numCols;
     private final int numRows;
 
 
-    public GameObject(int numPlayers, String host, int numCols, int numRows){
+    public GameObject(int numPlayers, UserId host, int numCols, int numRows){
         this.numPlayers = numPlayers;
         this.host = host;
         this.numCols = numCols;
         this.numRows = numRows;
     }
 
-    public void join(String player){
-        playerSockets.add(player);
+    public void join(UserId player){
+        players.add(player);
         GridModel grid = new GridModel(numCols, numRows);
         grids.add(grid);
 //        socket.initializeWithGrid(grid);
     }
 
-    public String getHostName(){
+    public UserId getHost(){
         return host;
     }
 
     public boolean isReadyToStart(){
-        return playerSockets.size() == numPlayers;
+        return players.size() == numPlayers;
     }
 
     public String toString(){
-        return "Game(" + host + "){#" + numPlayers + ", " + playerSockets + "}";
+        return "Game(" + host + "){#" + numPlayers + ", " + players + "}";
     }
 
 }
