@@ -27,9 +27,6 @@ public class ServerController extends WebSocketController {
 
     public static void connect(String idString) {
 
-
-        System.out.println(idString);
-
         if(idString == null || idString.length() == 0){
             System.out.println("idString: '" + idString + "'. Disconnecting!");
 
@@ -39,14 +36,12 @@ public class ServerController extends WebSocketController {
 
         UserId userId = new UserId(idString);
 
-
         Logger.info(userId + " connected ( remote addr: " + request.remoteAddress + ")");
         final EventStream<ServerEvent> serverEventStream = server.stream();
 //        Logger.info(s + "Client received event stream: " + serverEventStream + " from " + server.events);
         try{
             while(inbound.isOpen()){
 
-                System.out.println(userId + " waiting ...");
 //                Logger.info(s + "Waiting for something ...");
                 Either<ServerEvent, WebSocketEvent> event = await(Promise.waitEither(
                         serverEventStream.nextEvent(),
@@ -58,7 +53,7 @@ public class ServerController extends WebSocketController {
                 for(ServerEvent serverEvent : F.Matcher.ClassOf(ServerEvent.class).match(event._1)){
 //                    Logger.info(s + "Sending to client: " + serverMsg);
 
-                    System.out.println(userId + " received server event.");
+//                    System.out.println(userId + " received server event.");
                     handleServerEvent(userId, serverEvent);
                 }
 
@@ -126,7 +121,7 @@ public class ServerController extends WebSocketController {
 
                 case KICKED_FROM_LOBBY:
                     KickedFromLobby kickedEvent = (KickedFromLobby) e;
-                    if(kickedEvent.kicked.equals(userId)) {
+                    if(kickedEvent.kickedIsHuman && kickedEvent.kicked.equals(userId)) {
                         sendMessage(new Msg.YouWereKicked());
                     }
                     notifyLobbyStateIfMyLobby(userId, kickedEvent.lobby);
@@ -147,7 +142,7 @@ public class ServerController extends WebSocketController {
                     LobbyGameStarting gameStarting = (LobbyGameStarting) e;
                     Lobby lobby = gameStarting.lobby;
                     if(server.isPlayerInLobby(userId, lobby)){
-                        sendMessage(new Msg.GameIsStarting(lobby.numCols, lobby.numRows, lobby.sortedNames().toArray(new String[0])));
+                        sendMessage(new Msg.GameIsStarting(lobby.numCols, lobby.numRows, lobby.timeLimit, lobby.sortedNames().toArray(new String[0])));
                     }
                     break;
                 case GAME_PLAYERS_TURN:
@@ -167,6 +162,9 @@ public class ServerController extends WebSocketController {
                     break;
                 case LOBBY_DIM_CHANGE:
                     notifyLobbyStateIfMyLobby(userId, (((LobbyDimensionsChanged)e).lobby));
+                    break;
+                case LOBBY_TIME_LIMIT_CHANGE:
+                    notifyLobbyStateIfMyLobby(userId, (((LobbyTimeLimitChanged)e).lobby));
                     break;
                 case LOBBY_NEW_HOST:
                     notifyLobbyStateIfMyLobby(userId, (((LobbyNewHost)e).lobby));
@@ -199,7 +197,12 @@ public class ServerController extends WebSocketController {
                     }
                     break;
 
-
+                case GAME_ENDED:
+                    GameEnded endedEvent = (GameEnded) e;
+                    if(server.isPlayerInGame(userId, endedEvent.game) && ! endedEvent.game.getHost().equals(userId)){
+                        sendMessage(new Msg.GameEnded(endedEvent.leaverName));
+                    }
+                    break;
             }
         }
     }
@@ -274,6 +277,10 @@ public class ServerController extends WebSocketController {
                 server.leaveLobby(userId);
                 break;
 
+            case LEAVE_GAME:
+                server.leaveGame(userId);
+                break;
+
             case START_GAME_FROM_LOBBY:
                 reply = server.tryStartGameFromLobby(userId);
                 if(reply != null){
@@ -285,8 +292,12 @@ public class ServerController extends WebSocketController {
                 server.changeLobbyDimensions(userId, ((Msg.LobbySetDim) msg).numCols, ((Msg.LobbySetDim) msg).numRows);
                 break;
 
-            case LEAVE_GAME:
+
+            case LOBBY_SET_TIME_LIMIT:
+                server.changeLobbyTimeLimit(userId, ((Msg.LobbySetTimeLimit)msg).get());
                 break;
+
+
 
             case CONFIRM_GAME_STARTING:
                 String host = ((Msg.ConfirmGameStarting)msg).get();
@@ -300,7 +311,7 @@ public class ServerController extends WebSocketController {
             case QUICK_START_GAME:
                 Msg.QuickStartGame quickStart = (Msg.QuickStartGame) msg;
                 List<String> names = server.createGameAndFillWithBots(userId, 1 + quickStart.numBots, quickStart.numCols, quickStart.numRows);
-                sendMessage(new Msg.GameIsStarting(quickStart.numCols, quickStart.numRows, names.toArray(new String[0])));
+                sendMessage(new Msg.GameIsStarting(quickStart.numCols, quickStart.numRows, quickStart.timePerRound, names.toArray(new String[0])));
                 break;
 
             case PLACE_LETTER:
@@ -312,6 +323,8 @@ public class ServerController extends WebSocketController {
                 Msg.PickAndPlaceLetter pickAndPlace = (Msg.PickAndPlaceLetter) msg;
                 server.playerPickedAndPlacedLetter(userId, pickAndPlace.letter, pickAndPlace.cell);
                 break;
+
+
 
 
         }
@@ -330,6 +343,7 @@ public class ServerController extends WebSocketController {
 
 
     private static void sendMessage(Msg<ServerMsg> msg) throws IOException {
+        System.out.println("Sending msg: " + msg);
         byte opcode = 0x2; //binary
         outbound.send(opcode, bytesFromObject(msg));
     }
