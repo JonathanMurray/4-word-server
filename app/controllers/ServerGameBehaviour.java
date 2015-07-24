@@ -211,7 +211,7 @@ public class ServerGameBehaviour implements Runnable{
 
     public interface GameListener {
         void gameFinished(GameObject game);
-        void gameCrashed(GameObject game);
+//        void gameCrashed(GameObject game);
     }
 
 

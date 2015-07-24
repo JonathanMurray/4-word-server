@@ -3,6 +3,7 @@ package controllers;
 import fourword_shared.messages.*;
 import fourword_shared.model.Cell;
 import fourword_shared.model.GridModel;
+import fourword_shared.model.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,9 +14,10 @@ import java.util.Random;
  */
 public class AI {
     private GridModel grid;
-    private final List<Cell> emptyCells = new ArrayList<Cell>();
+    private List<Cell> emptyCells;
 
     public void initialize(GridModel grid){
+        emptyCells = new ArrayList<Cell>();
         this.grid = grid;
         for(int x = 0; x < grid.getNumCols(); x++){
             for(int y = 0; y < grid.getNumRows(); y++){
@@ -25,12 +27,18 @@ public class AI {
         }
     }
 
+    public void setLetter(Cell cell, char letter){
+        assertIsInitialized();
+        grid.setCharAtCell(letter, cell);
+        emptyCells.remove(cell);
+    }
+
     public Msg<ClientMsg> handleServerMessageAndProduceReply(Msg<ServerMsg> msg){
         assertIsInitialized();
         Cell randomEmptyCell;
         switch (msg.type()){
             case DO_PICK_AND_PLACE_LETTER:
-                char letter = randomLetter();
+                char letter = Util.randomLetter();
                 randomEmptyCell = randomEmptyCell();
                 grid.setCharAtCell(letter, randomEmptyCell);
                 return new Msg.PickAndPlaceLetter(letter, randomEmptyCell);
@@ -45,15 +53,11 @@ public class AI {
     }
 
     private Cell randomEmptyCell(){
+        assertIsInitialized();
         return emptyCells.remove(new Random().nextInt(emptyCells.size()));
     }
 
-    private char randomLetter(){
-        char letter = 'A';
-        int offset = new Random().nextInt('Z' - 'A');
-        letter = (char)(letter + offset);
-        return letter;
-    }
+
 
     private void assertIsInitialized(){
         if(grid == null){

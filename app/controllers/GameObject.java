@@ -2,12 +2,15 @@ package controllers;
 
 import fourword_shared.messages.ClientMsg;
 import fourword_shared.messages.Msg;
-import fourword_shared.model.Cell;
-import fourword_shared.model.GridModel;
+import fourword_shared.model.*;
+import fourword_shared.model.GameSettings.BoolAttribute;
 import play.libs.F;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -16,8 +19,6 @@ import java.util.concurrent.ExecutionException;
 public class GameObject {
 
     private static Server server = Server.INSTANCE;
-
-
 
     private enum State{
         PICKING_AND_PLACING,
@@ -37,10 +38,32 @@ public class GameObject {
     public HashMap<BotId, AI> ais = new HashMap<BotId, AI>();
     public ArrayList<String> playerNames = new ArrayList<String>();
     public HashMap<PlayerId, GridModel> grids = new HashMap<PlayerId, GridModel>();
-    private final int numCols;
-    private final int numRows;
+    public GameSettings settings;
 
     private final F.EventStream<ServerEvent> serverEventStream = server.stream();
+
+    public GameResult getResult() {
+        assertState(State.FINISHED);
+        HashMap<String, GridModel> nameGridMap = new HashMap<String, GridModel>();
+        HashSet<String> allLowerWords = new HashSet<String>();
+        File dir = new File("app/fourword_shared/word-lists");
+        File[] files = new File[]{
+                new File(dir, "swedish-word-list-2-letters"),
+                new File(dir, "swedish-word-list-3-letters"),
+                new File(dir, "swedish-word-list-4-letters"),
+                new File(dir, "swedish-word-list-5-letters")
+        };
+        ScoreCalculator s = new ScoreCalculator(Dictionary.fromFiles(files));
+        for(int i = 0; i < players.size(); i++){
+            PlayerId id = players.get(i);
+            String name = playerNames.get(i);
+            GridModel grid = grids.get(id);
+            nameGridMap.put(name, grid);
+            allLowerWords.addAll(s.extractLowerWords(grid));
+        }
+
+        return new GameResult(nameGridMap, allLowerWords);
+    }
 
     public void runAI(){
         new Thread(new Runnable() {
@@ -92,12 +115,19 @@ public class GameObject {
         return players.contains(player);
     }
 
-    public GameObject(int numPlayers, UserId host, int numCols, int numRows){
+    public GameObject(int numPlayers, UserId host, GameSettings settings){
         this.numPlayers = numPlayers;
         this.host = host;
-        this.numCols = numCols;
-        this.numRows = numRows;
-        numCellsLeftToFill = numCols * numRows;
+        this.settings = settings;
+        numCellsLeftToFill = numCols() * numRows();
+    }
+
+    private int numCols(){
+        return settings.getInt(GameSettings.IntAttribute.COLS);
+    }
+
+    private int numRows(){
+        return settings.getInt(GameSettings.IntAttribute.ROWS);
     }
 
     public boolean isFinished(){
@@ -107,18 +137,29 @@ public class GameObject {
     public void addHuman(UserId player, String name){
         players.add(player);
         playerNames.add(name);
-        GridModel grid = new GridModel(numCols, numRows);
+        GridModel grid = new GridModel(numCols(), numRows());
         grids.put(player, grid);
     }
 
     public void addBot(BotId bot){
         players.add(bot);
-        GridModel grid = new GridModel(numCols, numRows);
+        GridModel grid = new GridModel(numCols(), numRows());
         grids.put(bot, grid);
         AI ai = new AI();
         ais.put(bot, ai);
         playerNames.add(bot.botName);
         ai.initialize(grid);
+    }
+
+    public void setLetter(Cell cell, char letter){
+        numCellsLeftToFill --;
+        for(AI ai : ais.values()){
+            ai.setLetter(cell, letter);
+        }
+    }
+
+    public boolean preplacedRandom(){
+        return settings.getBool(BoolAttribute.CUSTOM_RULES) && settings.getBool(BoolAttribute.PREPLACED_RANDOM);
     }
 
     public void pickAndPlaceLetter(PlayerId player, char letter, Cell cell){
@@ -150,6 +191,8 @@ public class GameObject {
         return false; //Not next turn yet
     }
 
+
+
     private void assertState(State expected){
         if(state != expected){
             throw new RuntimeException("State " + state + " != " + expected);
@@ -178,7 +221,7 @@ public class GameObject {
     }
 
     public String toString(){
-        return "Game(" + host + "){#" + numPlayers + ", " + players + "}";
+        return "Game(" + host + "){#" + numPlayers + ", " + settings + ", " + players + "}";
     }
 
 }

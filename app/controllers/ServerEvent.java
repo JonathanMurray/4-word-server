@@ -1,7 +1,10 @@
 package controllers;
 
 import fourword_shared.model.Cell;
+import fourword_shared.model.GameSettings;
 import fourword_shared.model.Lobby;
+
+import java.io.Serializable;
 
 /**
  * Created by jonathan on 2015-07-08.
@@ -20,14 +23,14 @@ public abstract class ServerEvent {
         LOBBY_GAME_STARTING,
         GAME_PLAYERS_TURN,
         LOBBY_REMOVED,
-        LOBBY_DIM_CHANGE,
-        LOBBY_TIME_LIMIT_CHANGE,
         LOBBY_NEW_HOST,
         GAME_FINISHED,
         GAME_CRASHED,
         PICKED_AND_PLACED_LETTER,
         PLACED_LETTER,
-        GAME_HAS_STARTED, GAME_ENDED;
+        GAME_HAS_STARTED,
+        GAME_ENDED_EARLY,
+        LOBBY_SET_VAR, GAME_SERVER_SET_LETTER;
     }
 
     public final Type type;
@@ -68,38 +71,31 @@ public abstract class ServerEvent {
     static class InvitedToLobby extends ServerEvent{
         final String inviter;
         final UserId invitedId;
+        final String invitedName;
         final Lobby lobby;
 
-        InvitedToLobby(String inviter, UserId invitedId, Lobby lobby) {
+        InvitedToLobby(String inviter, UserId invitedId, String invitedName, Lobby lobby) {
             super(Type.INVITED_TO_LOBBY);
             this.inviter = inviter;
             this.invitedId = invitedId;
+            this.invitedName = invitedName;
             this.lobby = lobby;
         }
     }
 
     static class KickedFromLobby extends ServerEvent{
         final String kicker;
-        final UserId kicked;
-        final boolean kickedIsHuman;
+        final PlayerId kickedId;
+        final String kickedName;
         final Lobby lobby;
 
-        private KickedFromLobby(String kicker, Lobby lobby, UserId kicked, boolean kickedIsHuman) {
+        public KickedFromLobby(String kicker, Lobby lobby, PlayerId kickedId, String kickedName) {
             super(Type.KICKED_FROM_LOBBY);
             this.kicker = kicker;
             this.lobby = lobby;
-            this.kicked = kicked;
-            this.kickedIsHuman = kickedIsHuman;
+            this.kickedId = kickedId;
+            this.kickedName = kickedName;
         }
-
-        public static KickedFromLobby kickedHuman(String kicker, Lobby lobby, UserId kicked){
-            return new KickedFromLobby(kicker, lobby, kicked, true);
-        }
-
-        public static KickedFromLobby kickedBot(String kicker, Lobby lobby){
-            return new KickedFromLobby(kicker, lobby, null, false);
-        }
-
     }
 
     static class DeclinedInvite extends ServerEvent{
@@ -114,23 +110,37 @@ public abstract class ServerEvent {
     }
 
     static class JoinedLobby extends ServerEvent{
-        final String player;
+        final PlayerId playerId;
+        final String playerName;
+        final boolean isHuman;
         final Lobby lobby;
 
-        JoinedLobby(String player, Lobby lobby) {
+        private JoinedLobby(PlayerId playerId, String playerName, boolean isHuman, Lobby lobby) {
             super(Type.JOINED_LOBBY);
-            this.player = player;
+            this.playerId = playerId;
+            this.playerName = playerName;
+            this.isHuman = isHuman;
             this.lobby = lobby;
+        }
+
+        static JoinedLobby human(PlayerId playerId, String playerName, Lobby lobby){
+            return new JoinedLobby(playerId, playerName, true, lobby);
+        }
+
+        static JoinedLobby bot(String botName, Lobby lobby){
+            return new JoinedLobby(null, botName, false, lobby);
         }
     }
 
     static class LeftLobby extends ServerEvent{
-        final String player;
+        final PlayerId playerId;
+        final String playerName;
         final Lobby lobby;
 
-        LeftLobby(String player, Lobby lobby) {
+        LeftLobby(PlayerId playerId, String playerName, Lobby lobby) {
             super(Type.LEFT_LOBBY);
-            this.player = player;
+            this.playerId = playerId;
+            this.playerName = playerName;
             this.lobby = lobby;
         }
     }
@@ -157,29 +167,44 @@ public abstract class ServerEvent {
         }
     }
 
-    static class LobbyDimensionsChanged extends ServerEvent{
+    static class LobbySetVar extends ServerEvent{
         final Lobby lobby;
+        final GameSettings.Attribute var;
+        final Serializable value;
 
-        LobbyDimensionsChanged(Lobby lobby) {
-            super(Type.LOBBY_DIM_CHANGE);
+        LobbySetVar(Lobby lobby, GameSettings.Attribute var, Serializable value) {
+            super(Type.LOBBY_SET_VAR);
             this.lobby = lobby;
+            this.var = var;
+            this.value = value;
         }
     }
 
-    static class LobbyTimeLimitChanged extends ServerEvent{
-        final Lobby lobby;
+//    static class LobbyDimensionsChanged extends ServerEvent{
+//        final Lobby lobby;
+//
+//        LobbyDimensionsChanged(Lobby lobby) {
+//            super(Type.LOBBY_DIM_CHANGE);
+//            this.lobby = lobby;
+//        }
+//    }
 
-        LobbyTimeLimitChanged(Lobby lobby) {
-            super(Type.LOBBY_TIME_LIMIT_CHANGE);
-            this.lobby = lobby;
-        }
-    }
+//    static class LobbyTimeLimitChanged extends ServerEvent{
+//        final Lobby lobby;
+//
+//        LobbyTimeLimitChanged(Lobby lobby) {
+//            super(Type.LOBBY_TIME_LIMIT_CHANGE);
+//            this.lobby = lobby;
+//        }
+//    }
 
     static class LobbyNewHost extends ServerEvent{
         final Lobby lobby;
-        public LobbyNewHost(Lobby lobby) {
+        final String playerName;
+        public LobbyNewHost(Lobby lobby, String playerName) {
             super(Type.LOBBY_NEW_HOST);
             this.lobby = lobby;
+            this.playerName = playerName;
         }
     }
 
@@ -249,14 +274,29 @@ public abstract class ServerEvent {
         }
     }
 
+    static class GameServerSetLetter extends ServerEvent{
+        final GameObject game;
+        final Cell cell;
+        final char letter;
+
+        GameServerSetLetter(GameObject game, Cell cell, char letter) {
+            super(Type.GAME_SERVER_SET_LETTER);
+            this.game = game;
+            this.cell = cell;
+            this.letter = letter;
+        }
+    }
+
     static class GameEnded extends ServerEvent {
         final GameObject game;
         final String leaverName;
+        final UserId leaverId;
 
-        public GameEnded(GameObject game, String leaverName) {
-            super(Type.GAME_ENDED);
+        public GameEnded(GameObject game, String leaverName, UserId leaverId) {
+            super(Type.GAME_ENDED_EARLY);
             this.game = game;
             this.leaverName = leaverName;
+            this.leaverId = leaverId;
         }
     }
 }
