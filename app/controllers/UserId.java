@@ -13,4 +13,17 @@ public class UserId extends PlayerId{
     public String toString(){
         return idString;
     }
+
+    @Override
+    public boolean equals(Object other){
+        if(!(other instanceof UserId)){
+            return false;
+        }
+        return idString.equals(((UserId)other).idString);
+    }
+
+    @Override
+    public int hashCode(){
+        return idString.hashCode();
+    }
 }

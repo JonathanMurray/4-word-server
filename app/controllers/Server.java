@@ -232,7 +232,10 @@ public class Server implements ServerGameBehaviour.GameListener {
         }else {
             UserId invitedId = lowerCaseNameIdMap.get(invitedName.toLowerCase());
             Player invited = humanPlayers.get(invitedId);
-            if (invited.invitedToLobby != null) {
+            Lobby lobby = inviter.memberOfLobby;
+            if(lobby.size() == Lobby.MAX_PLAYERS){
+                return new Msg.No("Can't invite more players to this lobby!");
+            }else if (invited.invitedToLobby != null) {
                 return new Msg.No("That player already has a pending invite!");
             } else if (invited.memberOfLobby != null) {
                 return (new Msg.No("That player is already in a lobby!"));

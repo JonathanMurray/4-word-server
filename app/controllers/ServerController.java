@@ -149,7 +149,7 @@ public class ServerController extends WebSocketController {
                         sendMessage(userId, new Msg.LobbyStateChange(Msg.LobbyStateChange.Action.LEFT, kickedEvent.kickedName));
                     }
 //                    notifyLobbyStateIfMyLobby(userId, kickedEvent.lobby);
-                    if(server.isPlayerInMenu(userId)){
+                    if(server.isPlayerInMenuOrLobbyHost(userId)){
                         PlayerId kicked = kickedEvent.kickedId;
                         if(server.isLoggedInHuman(kicked)){
                             PlayerInfo info = server.getPlayerInfo((UserId) kicked);
@@ -267,7 +267,7 @@ public class ServerController extends WebSocketController {
     }
 
     private static void notifyGamePlayerInfoIfRelevant(UserId userId, GameObject game) throws IOException {
-        if(server.isPlayerInMenu(userId) || server.isPlayerHostingLobby(userId)){
+        if(server.isPlayerInMenuOrLobbyHost(userId)){
             List<PlayerInfo> infos = server.getPlayerInfoForAllInGame(game);
             for(PlayerInfo info : infos){
                 sendMessage(userId, new Msg.PlayerInfoUpdate(info));
@@ -276,7 +276,7 @@ public class ServerController extends WebSocketController {
     }
 
     private static void notifyLobbyPlayerInfoIfRelevant(UserId userId, Lobby lobby) throws IOException {
-        if(server.isPlayerInMenu(userId) || server.isPlayerHostingLobby(userId)){
+        if(server.isPlayerInMenuOrLobbyHost(userId)){
             List<PlayerInfo> infos = server.getPlayerInfoForAllInLobby(lobby);
             for(PlayerInfo info : infos){
                 sendMessage(userId, new Msg.PlayerInfoUpdate(info));
